@@ -263,6 +263,30 @@ class HashComparator:
             
             self.console.print(table)
     
+    def _clean_sheet_name(self, name: str) -> str:
+        """
+        Nettoie un nom pour qu'il soit valide comme nom de feuille Excel.
+        Les caractères interdits sont : \ / ? * [ ] :
+        Limite également à 31 caractères (limite Excel).
+        
+        Args:
+            name: Nom à nettoyer
+            
+        Returns:
+            Nom nettoyé
+        """
+        # Remplacer les caractères interdits par un underscore
+        invalid_chars = ['\\', '/', '?', '*', '[', ']', ':']
+        cleaned = name
+        for char in invalid_chars:
+            cleaned = cleaned.replace(char, '_')
+        
+        # Limiter à 31 caractères (limite Excel)
+        if len(cleaned) > 31:
+            cleaned = cleaned[:31]
+        
+        return cleaned
+    
     def export_to_excel(self, results: Dict, output_file: str = None):
         """
         Exporte les résultats vers un fichier Excel.
@@ -277,6 +301,10 @@ class HashComparator:
         
         output_path = Path(output_file)
         
+        # Nettoyer les noms de dossiers pour les noms de feuilles
+        dir1_sheet_name = self._clean_sheet_name(f'Uniquement {self.directory1.name}')
+        dir2_sheet_name = self._clean_sheet_name(f'Uniquement {self.directory2.name}')
+        
         with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
             # Feuille 1: Statistiques
             stats_df = pd.DataFrame([results['stats']])
@@ -290,12 +318,12 @@ class HashComparator:
             # Feuille 3: Fichiers uniquement dans le dossier 1
             if results['files_only_in_dir1']:
                 df_dir1 = pd.DataFrame(results['files_only_in_dir1'])
-                df_dir1.to_excel(writer, sheet_name=f'Uniquement {self.directory1.name}', index=False)
+                df_dir1.to_excel(writer, sheet_name=dir1_sheet_name, index=False)
             
             # Feuille 4: Fichiers uniquement dans le dossier 2
             if results['files_only_in_dir2']:
                 df_dir2 = pd.DataFrame(results['files_only_in_dir2'])
-                df_dir2.to_excel(writer, sheet_name=f'Uniquement {self.directory2.name}', index=False)
+                df_dir2.to_excel(writer, sheet_name=dir2_sheet_name, index=False)
         
         self.console.print(f"\n[bold green]✓[/bold green] Résultats exportés vers: [cyan]{output_path.absolute()}[/cyan]")
 
